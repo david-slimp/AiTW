@@ -3,6 +3,7 @@
   const cmd = document.getElementById('cmd');
   const send = document.getElementById('send');
   const statusRoom = document.getElementById('status-room');
+  const appVersion = document.getElementById('app-version');
 
   const exitsEl = document.getElementById('exits');
   const hereEl = document.getElementById('here');
@@ -44,6 +45,27 @@
   function renderInventory(inv) {
     const items = (inv && inv.items) ? inv.items : [];
     renderList(invEl, items.length ? items : ['(empty)']);
+  }
+
+  function parseMetaVersion(text) {
+    const lines = (text || '').split('\n');
+    for (const line of lines) {
+      const m = line.match(/^version:\s*\"?([0-9]+\.[0-9]+\.[0-9]+)\"?\s*,?\s*$/i);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function loadVersion() {
+    if (!appVersion) return;
+    appVersion.textContent = 'v...';
+    fetch('/meta.txt', { cache: 'no-store' })
+      .then((res) => res.ok ? res.text() : '')
+      .then((text) => {
+        const v = parseMetaVersion(text);
+        appVersion.textContent = v ? `v${v}` : '';
+      })
+      .catch(() => {});
   }
 
   function sendCmd(text) {
@@ -101,4 +123,6 @@
   document.querySelectorAll('button.q').forEach((b) => {
     b.addEventListener('click', () => sendCmd(b.dataset.cmd || ''));
   });
+
+  loadVersion();
 })();

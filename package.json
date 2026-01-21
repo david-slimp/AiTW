@@ -1,0 +1,26 @@
+{
+  "name": "adventures-in-the-way",
+  "version": "0.0.2",
+  "description": "Christian MMO/MUD text adventure with a web client.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "python3 src/scripts/dev_server.py",
+    "dev:web": "vite",
+    "build": "vite build",
+    "deploy:prod": "npm run build && bash src/scripts/deploy.sh",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0-only",
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "prettier": "^3.8.0",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.17"
+  }
+}

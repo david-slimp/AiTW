@@ -102,6 +102,8 @@ class World:
             self._reload_task.cancel()
             try:
                 await self._reload_task
+            except asyncio.CancelledError:
+                pass
             except Exception:
                 pass
 
@@ -227,16 +229,21 @@ class World:
                     await self.reload_content(initial=False)
                 except Exception as e:
                     await self._broadcast_global({"type": "log", "text": f"(World) Reload failed: {e}"})
+        except asyncio.CancelledError:
+            return
         except Exception:
             # Poll fallback
-            while True:
-                await asyncio.sleep(self.cfg.hot_reload_poll_seconds)
-                try:
-                    # Simple mtime scan to avoid needless reloads
-                    if self._content_changed_since_last_scan():
-                        await self.reload_content(initial=False)
-                except Exception as e:
-                    await self._broadcast_global({"type": "log", "text": f"(World) Reload failed: {e}"})
+            try:
+                while True:
+                    await asyncio.sleep(self.cfg.hot_reload_poll_seconds)
+                    try:
+                        # Simple mtime scan to avoid needless reloads
+                        if self._content_changed_since_last_scan():
+                            await self.reload_content(initial=False)
+                    except Exception as e:
+                        await self._broadcast_global({"type": "log", "text": f"(World) Reload failed: {e}"})
+            except asyncio.CancelledError:
+                return
 
     def _content_changed_since_last_scan(self) -> bool:
         changed = False
@@ -710,7 +717,7 @@ class World:
     @staticmethod
     def _display_name(player: PlayerState) -> str:
         # Minimal: friendly name from IP
-        return f"Pilgrim@{player.ip}"
+        return f"Disciple@{player.ip}"
 
     @staticmethod
     def _validate_room(data: Dict[str, Any], source: str = "") -> None:

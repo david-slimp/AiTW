@@ -15,6 +15,7 @@ Adventures in The Way (AiTW) is a multiplayer, Christian-themed text adventure M
 - World: four rooms total, including one gated by the Bible and one dark room.
 - Items: two items (Bible and Candle) that can be `TAKE`/`DROP`.
 - Live updates: arrivals, departures, item movement.
+- Gameplay URL: see `docs/PRD.md` and `README.md`.
 
 ## MVP Commands
 - `LOOK`, `HELP`, `INVENTORY` (`INV`/`I`), `TAKE`, `DROP`, `GO`, `QUIT`.

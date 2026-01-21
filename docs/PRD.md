@@ -13,6 +13,10 @@ Adventures in The Way (AiTW) is a multiplayer, Christian-themed text adventure M
 - Backend: Python server with WebSockets on port 26472 (initial target).
 - Client: Web browser.
 - Deployment target: CentOS 7 (initial).
+## Production Hosting
+- Deploy target is configured via `.env` (server and path are authoritative).
+- Public gameplay URL: https://MinistriesForChrist.net/games/
+- GitHub: https://github.com/david-slimp/AiTW
 
 ## Core Gameplay Loop
 Curiosity → Exploration → Hypothesis → Experiment → Payoff → New curiosity, mapped to a Christian growth arc.

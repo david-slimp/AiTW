@@ -4,16 +4,17 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from world import World, WorldConfig
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-CONTENT_DIR = BASE_DIR / "content"
-DATA_DIR = BASE_DIR / "data"
-WEB_DIR = BASE_DIR / "web"
+REPO_DIR = Path(__file__).resolve().parents[2]
+CONTENT_DIR = REPO_DIR / "src" / "content"
+DATA_DIR = REPO_DIR / "src" / "data"
+WEB_DIR = REPO_DIR / "src" / "web"
 STATIC_DIR = WEB_DIR / "static"
+PUBLIC_DIR = REPO_DIR / "public"
 
 app = FastAPI(title="Adventures in The Way (Minimal)")
 
@@ -37,6 +38,16 @@ async def on_shutdown() -> None:
 async def index() -> HTMLResponse:
     html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
     return HTMLResponse(html)
+
+
+@app.get("/meta.txt")
+async def meta_txt() -> FileResponse:
+    return FileResponse(PUBLIC_DIR / "meta.txt")
+
+
+@app.get("/favicon.ico")
+async def favicon() -> FileResponse:
+    return FileResponse(PUBLIC_DIR / "favicon.ico")
 
 
 @app.websocket("/ws")
