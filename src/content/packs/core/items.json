@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.0",
+  "items": [
+    {
+      "id": "item:core:bible",
+      "name": "Bible",
+      "short": "a well-worn Bible",
+      "description": "A well-worn Bible with thin pages and a ribbon marker. The cover is scuffed, like it has been carried through many seasons.",
+      "tags": ["book", "readable", "holy"],
+      "verbs": ["TAKE", "DROP", "EXAMINE"]
+    }
+  ]
+}

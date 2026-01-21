@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adventures in The Way (Minimal)</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="topbar">
+    <div id="topbar-left">Adventures in The Way</div>
+    <div id="status-room">Connecting...</div>
+    <div id="topbar-right">
+      <span class="chip" title="placeholder">Faith</span>
+      <span class="chip" title="placeholder">Peace</span>
+      <span class="chip" title="placeholder">Joy</span>
+    </div>
+  </div>
+
+  <div id="layout">
+    <aside id="left">
+      <h3>Exits</h3>
+      <ul id="exits"></ul>
+
+      <h3>Here Now</h3>
+      <ul id="here"></ul>
+
+      <h3>On the ground</h3>
+      <ul id="ground"></ul>
+    </aside>
+
+    <main id="center">
+      <div id="transcript" aria-label="Transcript"></div>
+      <div id="inputRow">
+        <input id="cmd" type="text" placeholder="Type a command (HELP, LOOK, TAKE BIBLE...)" autocomplete="off" />
+        <button id="send">Send</button>
+      </div>
+      <div id="quick">
+        <button class="q" data-cmd="LOOK">LOOK</button>
+        <button class="q" data-cmd="INVENTORY">INVENTORY</button>
+        <button class="q" data-cmd="TAKE BIBLE">TAKE BIBLE</button>
+        <button class="q" data-cmd="DROP BIBLE">DROP BIBLE</button>
+        <button class="q" data-cmd="HELP">HELP</button>
+      </div>
+    </main>
+
+    <aside id="right">
+      <h3>Inventory</h3>
+      <ul id="inv"></ul>
+
+      <h3>Fruit (placeholder)</h3>
+      <div class="muted">Coming soon.</div>
+    </aside>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

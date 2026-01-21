@@ -1,0 +1,94 @@
+==========================================
+OLD CHAT (EXTRACTED + REFRAMED FOR AiTW MMO/MUD)
+==========================================
+
+Scope note:
+This file consolidates the planning ideas from an older COBOL/CLI chat log and reframes them for
+the current MMO/MUD web-based client/server version. COBOL- and local-only details are removed
+while keeping the useful design concepts, decisions, and constraints.
+
+
+1) Core goals and guiding principles
+- Fully data-driven world: rooms, items, commands, and vocabulary live in data files, not in code.
+- Modular engine: parsing, data loading, command dispatch, state management, and room/item logic are separate modules.
+- MVP-first: keep mechanics simple now but design the data format for future expansion.
+- Extendability: new rooms/items/commands should be addable without code changes or recompiling.
+
+
+2) Data-driven world model (what belongs in data files)
+- Rooms: id, name, long description, alt description for dark/low-visibility states, exits.
+- Items: id, name, synonyms, starting location, flags (portable, light-source, etc.).
+- Commands: verb list, verb -> handler mapping, aliases/synonyms.
+- Vocabulary: nouns and verbs in separate data files (fully data-driven).
+- Optional future-ready data: triggers/events, flags, conditions, conditional text.
+
+
+3) State to track (server-side)
+- Player state: current room, inventory list, status flags.
+- World state: item locations (room or player), room flags (visited), global flags.
+- Defer for later: time/turn counters, scoring, health/faith meters.
+
+
+4) Parser and command behavior (MVP)
+- Keep MVP strict and simple: only accept "GO <direction>" for movement.
+- Normalize input: uppercase, trim whitespace, strip punctuation.
+- Missing noun handling: respond with explicit prompts ("GET what?", "GO direction?").
+- Commands that do not require nouns: HELP, INVENTORY, QUIT.
+- Synonyms and shorthand (N, NORTH, MOVE NORTH) are post-MVP expansions.
+
+
+5) Rooms, lighting, and visibility logic
+- Each room has two descriptions: one for "can see" and one for "cannot see" states.
+- Visibility is a condition (room lit, player has light, special ability) rather than a room-only property.
+- If a room cannot be seen, items are not discoverable: "You do not see ITEM".
+- Use a placeholder like "[NA]" for unused fields in delimited files to avoid empty ambiguity.
+
+
+6) Items, puzzles, and MVP content
+- MVP item counts are minimal; items are one-of-a-kind.
+- MVP puzzle: Bible unlocks access to additional rooms (gate applies both directions).
+- Add a candlestick (light source) to demonstrate dark-room descriptions.
+- Future note: light sources can have a lit/unlit flag, can be toggled later; support external events (wind/battery) later.
+
+
+7) Data formats and delimiter rules
+- Use simple delimited files for MVP (pipe-delimited or similar).
+- No delimiter characters allowed inside field values.
+- JSON or key-value formats are optional for later expansion.
+
+
+8) Runtime data locations (reframed for web/server)
+- Maintain a clear separation between source content and runtime data.
+- Source content lives in a dedicated content directory (e.g., `src/appdata/`).
+- Runtime server data lives in deploy output directories (e.g., `dist/appdata/` and `dist/player/`).
+- Build/deploy steps should wipe and rebuild runtime data directories to avoid stale content.
+
+
+9) Reload behavior (future)
+- RELOAD is deferred for MVP.
+- When implemented, RELOAD should:
+  - reload content files into memory,
+  - preserve player state when possible,
+  - gracefully handle missing/renamed rooms or items (fallback to nearest valid room).
+
+
+10) Project narrative direction (long-term)
+- The game theme: a new Christian starts small, grows spiritually, navigates challenges and puzzles, and eventually spreads the Gospel.
+- MVP remains simple and focused, but should keep this arc in mind when naming and framing rooms/items.
+
+
+11) Open questions resolved in the old chat
+- Fully data-driven vocab files: yes.
+- MVP commands: GO, LOOK, GET, DROP, INVENTORY, HELP, QUIT.
+- MVP movement: only "GO <direction>" (no shorthand yet).
+- All input sanitized and uppercased.
+- For server/client over web, we want ALL user input to be quickly and strictly sanitized with strong security in mind against potential hacking/attacks. HIGHEST PRIORITY.
+- Items are one-of-a-kind for MVP.
+
+
+12) Open questions (carry forward)
+- Final delimiter choice for production data files (pipe vs comma vs semicolon). ANSWER: pipe first, and if we need separation in a pipe field, then we can use comma next.
+- Exact schema fields for rooms/items/locks and how to version them. ANSWER: I think we ultimately want some kind of mudule for sanitizing and parsing data either getting read from files or before getting written to files. That data parser should probably have a schema version attached to it, unless there is a better way the general/public gaming industry already standardized on this.
+- Whether to keep a runtime data wipe on each build in the web server workflow.  ANSWER: For right now, I do think we want a full data/player wipe for each new build/release.  Eventually we will NOT want that, and we will eventually want new released to keep/retain player/item/room data as much as possible between builds.
+- How to model light sources (simple boolean vs multi-state) when moving beyond MVP. ANSWER: Keep note of this and revisit this after MVP is done.
+

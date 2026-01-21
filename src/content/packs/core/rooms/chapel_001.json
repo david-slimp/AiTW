@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.0",
+  "id": "room:core:chapel_001",
+  "name": "Quiet Chapel",
+  "description": "A quiet chapel with wooden pews and a simple table at the front. Sunlight falls in soft beams through stained glass. The air smells faintly of old books and candle wax.",
+  "exits": {},
+  "tags": ["indoors", "safe"],
+  "flags": {}
+}
