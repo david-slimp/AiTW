@@ -6,15 +6,28 @@ from pathlib import Path
 import uvicorn
 
 
+async def _serve() -> None:
+    from app import world
+
+    await world.start()
+    try:
+        await server.serve()
+    finally:
+        await world.stop()
+
+
 def main() -> None:
     server_dir = Path(__file__).resolve().parents[1] / "server"
     sys.path.insert(0, str(server_dir))
+
     config = uvicorn.Config(
         "app:app",
         host="0.0.0.0",
         port=26472,
         log_level="info",
+        lifespan="off",
     )
+    global server
     server = uvicorn.Server(config)
     server.install_signal_handlers = False
 
@@ -23,9 +36,10 @@ def main() -> None:
 
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
+    signal.signal(signal.SIGQUIT, _handle_signal)
 
     try:
-        asyncio.run(server.serve())
+        asyncio.run(_serve())
     except (KeyboardInterrupt, asyncio.CancelledError):
         pass
 

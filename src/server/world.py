@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from fastapi import WebSocket
 
+from commands import registry
+
 
 # ---------------------------
 # Config + Data Models
@@ -85,15 +87,14 @@ class World:
         self._reload_task: Optional[asyncio.Task] = None
         self._last_seen_mtimes: Dict[str, float] = {}
 
-        # Defaults
-        self.start_room_id = "room:core:chapel_001"
-        self.bible_proto_id = "item:core:bible"
-        self.bible_instance_id = "inst:core:bible_001"
+        # Defaults (overridden by world.json when present)
+        self.start_room_id = ""
+        self.initial_instances: List[ItemInstance] = []
 
     async def start(self) -> None:
         (self.cfg.data_dir / "players").mkdir(parents=True, exist_ok=True)
         await self.reload_content(initial=True)
-        self._ensure_minimal_world_instances()
+        self._ensure_initial_instances()
 
         self._reload_task = asyncio.create_task(self._hot_reload_loop())
 
@@ -141,6 +142,7 @@ class World:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             rooms_path = pack_dir / manifest.get("rooms_path", "rooms")
             items_path = pack_dir / manifest.get("items_path", "items.json")
+            world_path = pack_dir / manifest.get("world_path", "world.json")
 
             # Rooms (per-room files)
             if rooms_path.exists():
@@ -164,28 +166,42 @@ class World:
                         exits=normalized_exits,
                     )
 
-            # Items (single file)
+            # Items (directory or single file)
             if items_path.exists():
-                items_data = json.loads(items_path.read_text(encoding="utf-8"))
-                self._validate_items(items_data, source=str(items_path))
-                for item in items_data.get("items", []):
-                    pid = item["id"]
-                    verbs = set(v.upper() for v in item.get("verbs", []) or [])
-                    new_items[pid] = ItemProto(
-                        id=pid,
-                        name=item.get("name", pid),
-                        short=item.get("short", item.get("name", pid)),
-                        description=item.get("description", ""),
-                        verbs=verbs,
-                    )
+                if items_path.is_dir():
+                    for item_file in items_path.glob("*.json"):
+                        item = json.loads(item_file.read_text(encoding="utf-8"))
+                        self._validate_item_proto(item, source=str(item_file))
+                        pid = item["id"]
+                        verbs = set(v.upper() for v in item.get("verbs", []) or [])
+                        new_items[pid] = ItemProto(
+                            id=pid,
+                            name=item.get("name", pid),
+                            short=item.get("short", item.get("name", pid)),
+                            description=item.get("description", ""),
+                            verbs=verbs,
+                        )
+                else:
+                    items_data = json.loads(items_path.read_text(encoding="utf-8"))
+                    self._validate_items(items_data, source=str(items_path))
+                    for item in items_data.get("items", []):
+                        pid = item["id"]
+                        verbs = set(v.upper() for v in item.get("verbs", []) or [])
+                        new_items[pid] = ItemProto(
+                            id=pid,
+                            name=item.get("name", pid),
+                            short=item.get("short", item.get("name", pid)),
+                            description=item.get("description", ""),
+                            verbs=verbs,
+                        )
+
+        # World config (start room + initial instances)
+        self._load_world_config(world_path, new_rooms, new_items)
+        registry.reload_from_packs(self.cfg.content_dir)
 
         if self.start_room_id not in new_rooms:
             raise RuntimeError(
                 f"Start room '{self.start_room_id}' not found in loaded content."
-            )
-        if self.bible_proto_id not in new_items:
-            raise RuntimeError(
-                f"Bible proto '{self.bible_proto_id}' not found in loaded content."
             )
 
         # Swap prototypes atomically
@@ -201,16 +217,14 @@ class World:
             # notify players with a soft message (no spam)
             await self._broadcast_global({"type": "log", "text": "(World) Content updated."})
 
-    def _ensure_minimal_world_instances(self) -> None:
-        """Create the initial Bible instance if it doesn't exist."""
-        if self.bible_instance_id not in self.item_instances:
-            self.item_instances[self.bible_instance_id] = ItemInstance(
-                id=self.bible_instance_id,
-                proto_id=self.bible_proto_id,
-                location_type="room",
-                location_id=self.start_room_id,
-            )
-            self.room_contents.setdefault(self.start_room_id, set()).add(self.bible_instance_id)
+    def _ensure_initial_instances(self) -> None:
+        """Create initial item instances from world config if missing."""
+        for inst in self.initial_instances:
+            if inst.id in self.item_instances:
+                continue
+            self.item_instances[inst.id] = inst
+            if inst.location_type == "room":
+                self.room_contents.setdefault(inst.location_id, set()).add(inst.id)
 
     async def _hot_reload_loop(self) -> None:
         """Best-effort hot reload.
@@ -355,140 +369,10 @@ class World:
         cmd, arg = self._split_cmd(raw)
         cmd_u = cmd.upper()
 
-        if cmd_u in {"LOOK", "L"}:
-            await self._do_look(conn_id)
+        handled = await registry.dispatch(self, conn_id, cmd_u, arg)
+        if handled:
             return
-
-        if cmd_u in {"INVENTORY", "INV", "I"}:
-            await self._do_inventory(conn_id)
-            return
-
-        if cmd_u == "HELP":
-            await self._do_help(conn_id)
-            return
-
-        if cmd_u == "TAKE":
-            await self._do_take(conn_id, arg)
-            return
-
-        if cmd_u == "DROP":
-            await self._do_drop(conn_id, arg)
-            return
-
         await self.send_to_conn(conn_id, {"type": "log", "text": "I don't understand that yet. Try HELP."})
-
-    async def _do_help(self, conn_id: str) -> None:
-        lines = [
-            "Commands:",
-            "  LOOK (or L)",
-            "  TAKE <thing>",
-            "  DROP <thing>",
-            "  INVENTORY (or I)",
-            "  HELP",
-            "",
-            "Tip: try TAKE BIBLE, then INVENTORY, then DROP BIBLE.",
-        ]
-        for ln in lines:
-            await self.send_to_conn(conn_id, {"type": "log", "text": ln})
-
-    async def _do_look(self, conn_id: str) -> None:
-        player = self._get_player_for_conn(conn_id)
-        if not player:
-            return
-        room = self.rooms.get(player.room_id)
-        if not room:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "(World) You are nowhere."})
-            return
-
-        await self.send_to_conn(conn_id, {"type": "log", "text": f"{room.name}"})
-        await self.send_to_conn(conn_id, {"type": "log", "text": room.description})
-
-        # Items on ground
-        items = self._room_item_summaries(player.room_id)
-        if items:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "You see here: " + ", ".join(items)})
-
-        # Others present
-        others = [
-            self._display_name(self.players[pid])
-            for pid in sorted(self.room_players.get(player.room_id, set()))
-            if pid != player.id and pid in self.players
-        ]
-        if others:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "Also here: " + ", ".join(others)})
-
-        await self._broadcast_room_state(player.room_id)
-
-    async def _do_inventory(self, conn_id: str) -> None:
-        player = self._get_player_for_conn(conn_id)
-        if not player:
-            return
-
-        items = self._inventory_item_summaries(player)
-        if not items:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "You are carrying nothing."})
-        else:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "You are carrying: " + ", ".join(items)})
-
-        await self._send_inventory_state(conn_id)
-
-    async def _do_take(self, conn_id: str, what: str) -> None:
-        player = self._get_player_for_conn(conn_id)
-        if not player:
-            return
-
-        if not what:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "Take what?"})
-            return
-
-        inst_id = self._find_item_in_room_by_name(player.room_id, what)
-        if not inst_id:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "You don't see that here."})
-            return
-
-        self._move_item_instance(inst_id, to_type="player", to_id=player.id)
-
-        proto = self.item_protos.get(self.item_instances[inst_id].proto_id)
-        item_name = proto.name if proto else "that"
-
-        await self.send_to_conn(conn_id, {"type": "log", "text": f"Taken: {item_name}."})
-        await self.broadcast_room(
-            player.room_id,
-            {"type": "log", "text": f"{self._display_name(player)} picks up {item_name}."},
-            exclude_player_id=player.id,
-        )
-
-        await self._send_inventory_state(conn_id)
-        await self._broadcast_room_state(player.room_id)
-
-    async def _do_drop(self, conn_id: str, what: str) -> None:
-        player = self._get_player_for_conn(conn_id)
-        if not player:
-            return
-
-        if not what:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "Drop what?"})
-            return
-
-        inst_id = self._find_item_in_inventory_by_name(player, what)
-        if not inst_id:
-            await self.send_to_conn(conn_id, {"type": "log", "text": "You aren't carrying that."})
-            return
-
-        self._move_item_instance(inst_id, to_type="room", to_id=player.room_id)
-
-        proto = self.item_protos.get(self.item_instances[inst_id].proto_id)
-        item_name = proto.name if proto else "that"
-
-        await self.send_to_conn(conn_id, {"type": "log", "text": f"Dropped: {item_name}."})
-        await self.broadcast_room(
-            player.room_id,
-            {"type": "log", "text": f"{self._display_name(player)} drops {item_name}."},
-            exclude_player_id=player.id,
-        )
-
-        await self._send_inventory_state(conn_id)
-        await self._broadcast_room_state(player.room_id)
 
     # ---------------------------
     # Messaging helpers
@@ -521,7 +405,13 @@ class World:
         if not player:
             return
 
-        room = self.rooms[player.room_id]
+        room = self.rooms.get(player.room_id)
+        if not room:
+            player.room_id = self.start_room_id
+            room = self.rooms.get(self.start_room_id)
+        if not room:
+            await self.send_to_conn(conn_id, {"type": "log", "text": "(World) No valid start room loaded."})
+            return
 
         payload = {
             "type": "init",
@@ -534,7 +424,7 @@ class World:
         # also show initial look
         await self.send_to_conn(conn_id, {"type": "log", "text": "Welcome to Adventures in The Way (minimal)."})
         await self.send_to_conn(conn_id, {"type": "log", "text": "Type HELP for commands."})
-        await self._do_look(conn_id)
+        await registry.dispatch(self, conn_id, "LOOK", "")
 
     async def _broadcast_room_state(self, room_id: str) -> None:
         state = {"type": "room_state", "room": self._room_state(room_id)}
@@ -671,6 +561,8 @@ class World:
                 inv = set(data.get("inventory", []) or [])
                 # NOTE: inventory instances may not exist after restart; we'll ignore missing
                 inv = {iid for iid in inv if iid in self.item_instances}
+                if room_id not in self.rooms:
+                    room_id = self.start_room_id
                 return PlayerState(id=pid, ip=ip, room_id=room_id, inventory=inv)
             except Exception:
                 pass
@@ -742,3 +634,53 @@ class World:
                     raise ValueError(f"Item missing '{k}' ({source})")
             if not isinstance(item["id"], str) or not item["id"].startswith("item:"):
                 raise ValueError(f"Item id must start with 'item:' ({source})")
+
+    @staticmethod
+    def _validate_item_proto(data: Dict[str, Any], source: str = "") -> None:
+        required = ["schema_version", "content_version", "id", "name", "short", "description"]
+        for k in required:
+            if k not in data:
+                raise ValueError(f"Item proto missing '{k}' ({source})")
+        if not isinstance(data["id"], str) or not data["id"].startswith("item:"):
+            raise ValueError(f"Item id must start with 'item:' ({source})")
+
+    def _load_world_config(
+        self,
+        path: Path,
+        rooms: Dict[str, RoomProto],
+        items: Dict[str, ItemProto],
+    ) -> None:
+        if not path.exists():
+            raise RuntimeError(f"Missing world config: {path}")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        self._validate_world_config(data, source=str(path))
+        self.start_room_id = data["start_room_id"]
+        self.initial_instances = []
+        for inst in data.get("initial_instances", []):
+            iid = inst["instance_id"]
+            pid = inst["prototype_id"]
+            if pid not in items:
+                raise RuntimeError(f"World config references missing item: {pid}")
+            self.initial_instances.append(
+                ItemInstance(
+                    id=iid,
+                    proto_id=pid,
+                    location_type=inst["location_type"],
+                    location_id=inst["location_id"],
+                )
+            )
+
+    @staticmethod
+    def _validate_world_config(data: Dict[str, Any], source: str = "") -> None:
+        required = ["schema_version", "content_version", "start_room_id", "initial_instances"]
+        for k in required:
+            if k not in data:
+                raise ValueError(f"World config missing '{k}' ({source})")
+        if not isinstance(data["start_room_id"], str) or not data["start_room_id"].startswith("room:"):
+            raise ValueError(f"World start_room_id must start with 'room:' ({source})")
+        if not isinstance(data["initial_instances"], list):
+            raise ValueError(f"World initial_instances must be a list ({source})")
+        for inst in data["initial_instances"]:
+            for k in ["instance_id", "prototype_id", "location_type", "location_id"]:
+                if k not in inst:
+                    raise ValueError(f"World instance missing '{k}' ({source})")

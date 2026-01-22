@@ -31,6 +31,7 @@ pids/
 *.pid
 *.pid.lock
 *.seed
+src/data/players/
 
 # ======================
 # Build Artifacts & Temp
@@ -110,4 +111,3 @@ windsurf-workspace.json
 .dynamodb/
 .tern-port
 .vscode-test/
-

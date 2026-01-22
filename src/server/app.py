@@ -4,10 +4,11 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from world import World, WorldConfig
+from commands import registry
 
 REPO_DIR = Path(__file__).resolve().parents[2]
 CONTENT_DIR = REPO_DIR / "src" / "content"
@@ -48,6 +49,11 @@ async def meta_txt() -> FileResponse:
 @app.get("/favicon.ico")
 async def favicon() -> FileResponse:
     return FileResponse(PUBLIC_DIR / "favicon.ico")
+
+
+@app.get("/commands.json")
+async def commands_json() -> JSONResponse:
+    return JSONResponse({"commands": registry.command_meta()})
 
 
 @app.websocket("/ws")

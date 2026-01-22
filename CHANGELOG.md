@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.0.3] - 2026-01-22
+### Added
+- Created per-item JSON prototype for Bible under src/content/packs/core/items/
+- docs/Advancing.md for discipleship actions + verse list
+- docs/puzzles.md with puzzle pattern examples
+- Drafted item instance schema and v1 verse list in docs/Advancing.md
+- Split core commands into modules under src/server/commands/
+- Added command pack file at src/content/packs/core/commands/commands.json
+- Added MOVE/GO and QUIT commands; TAKE now supports GET alias
+- HELP now shows short list by default and detailed help for specific commands
+- HELP tips now mention HELP <command>, and detailed help shows aliases
+- Marked HELP listing of GO/QUIT as DONE in docs/TODO.md
+- Marked acceptance checks (no hardcoded IDs, modular commands) as DONE in docs/TODO.md
+### Changed
+- Expanded docs/TODO.md with a step-by-step plan for GH Issue #1
+- Marked completed GH Issue #1 steps as DONE in docs/TODO.md
+- Marked PRD/MVP JSON schema doc task as DONE in docs/TODO.md
+- Bumped version to 0.0.3 in package.json, package-lock.json, and public/meta.txt
+- Clarified commit/tag message guidance in docs/TODO.md
+- Ignored and removed local player save data from version control
+- Updated content manifest to use items/ directory and loader to support per-item files
+- Added design notes on item instances, inventory slots, and private tutorial rooms in PRD/MVP
+- Updated MVP scope to include a public courtyard room
+- Added goal-conveyance guidance and content targets to PRD
+- Expanded docs/Advancing.md with discipleship commands, character traits, disciplines, actions, and “put off” list
+- Expanded docs/Advancing.md with a structured NT discipleship map (core, ethics, fruit, practices, mission)
+- Expanded docs/puzzles.md with cryptic, spatial, logic, meta, and cooperation puzzle types
+- Added world.json for start room + initial spawns and removed hardcoded Bible instance
+- Moved item instance schema from Advancing.md to PRD.md
+- Help output now generated from command module metadata
+- Guarded against missing room IDs in saved player state
+- Disabled lifespan in dev_server.py and handled SIGQUIT for cleaner shutdowns
+- dev_server.py now runs world.start/stop explicitly when lifespan is off
+- Fixed circular import so HELP command dispatch works
+- Added HELP command metadata so it registers and appears in help output
+- Switched command registry to load modules from command packs on content reload
+- Added command metadata endpoint and dynamic quick buttons in the UI
+- Added modular engine philosophy and reusable command packs guidance to PRD
+### Fixed
+### Known Issues
+
 ## [0.0.2] - 2026-01-20
 ### Added
 - package.json and package-lock.json with Vite/Vitest/ESLint/Prettier/Husky dev deps

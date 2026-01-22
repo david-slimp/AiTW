@@ -21,6 +21,12 @@ Adventures in The Way (AiTW) is a multiplayer, Christian-themed text adventure M
 ## Core Gameplay Loop
 Curiosity → Exploration → Hypothesis → Experiment → Payoff → New curiosity, mapped to a Christian growth arc.
 
+## Goal Conveyance (Design Principle)
+- Do not state objectives directly at the start.
+- Use a scenario-driven opening: entering a church, an altar call, being given a Bible, and a general charge to “do good.”
+- Use Bible reading and Holy Spirit prompts to guide players if they drift.
+- REPENT should be a core command for missteps and sin/temptation loops.
+
 ## Milestones
 - v0.0.1: minimal server/client wiring; single room; single item; basic HUD.
 - v0.1.0 (MVP): 4 rooms, 2 items (Bible + Candle), Bible-gated room, dark-room lighting, core commands (`GO`, `LOOK`, `TAKE`, `DROP`, `INVENTORY`, `HELP`, `QUIT`).
@@ -37,11 +43,52 @@ Curiosity → Exploration → Hypothesis → Experiment → Payoff → New curio
 - Prototype + instance model for live state.
 - Hot reload strategy: watch + validate + apply.
 - Versioning and migrations for content schemas.
+ - Items should support weight and inventory slot rules (e.g., hand, bag, ring).
+ - Item instances should store mutable state (durability, charges, on/off, cooked/burnt, etc.) in runtime state, not per-file prototypes.
+ - World/region maps should support: starting locations, item spawns, and per-room spawn rules.
+ - Support private tutorial rooms (per-player instances) and public social rooms.
+
+### Item Instance Schema (Draft)
+This schema keeps item prototypes in JSON files and stores per-instance state in runtime.
+
+Example instance record:
+```json
+{
+  "instance_id": "inst:core:bible_001",
+  "prototype_id": "item:core:bible",
+  "location_type": "room",
+  "location_id": "room:core:chapel_001",
+  "quantity": 1,
+  "state": {
+    "durability": "intact",
+    "charges": null,
+    "lit": null,
+    "condition": "normal"
+  }
+}
+```
+
+Notes:
+- Use `quantity` for stacks (e.g., 100 apples).
+- Use `state` for mutable values (durability, on/off, charge level, cooked/burnt, etc.).
+- Do not create one file per instance; instances live in runtime state.
+
+## Content Targets (Initial Core Release)
+- Rooms: ~20–30
+- Items: ~10–20
+- Puzzles: ~7–12 (see `docs/puzzles.md`)
 
 ## Command Architecture (Planned)
 - Prefer one module per command (e.g., `LOOK`, `INVENTORY`, `TAKE`, `DROP`, `PRAY`).
 - This should be reviewed against best practices as the command router and plugin system are designed.
 - Data-driven command rules first; plugins/modules only when needed.
+
+## Modular Engine Philosophy (Reusable Command Packs)
+- Server code should remain generic for text adventure/IF structure (rooms/items/world/commands).
+- Different admins can supply their own content files and command packs to build a different game on the same engine.
+- Standard IF command modules (LOOK/TAKE/DROP/INVENTORY/HELP) are reusable across games.
+- Feature modules (e.g., lighting, combat systems) should be optional plug-ins that can be included or excluded per game.
+- Long-term goal: multiple combat modules that can be swapped without changing core server code.
 
 ## UI/HUD
 - Three-column layout:
