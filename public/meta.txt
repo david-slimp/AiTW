@@ -1,6 +1,6 @@
 name: "Adventures in The Way",
 path: "AiTW/",
 thumb: "AiTW/aitw-thumb-01.png",
-version: "0.0.2",
+version: "0.0.3",
 desc: "Christian MMO/MUD text adventure with a web client",
-modified: "2026-01-20"
+modified: "2026-01-22"

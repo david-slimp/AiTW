@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.0",
+  "commands": [
+    {"module": "look_cmd"},
+    {"module": "take_cmd"},
+    {"module": "inventory_cmd"},
+    {"module": "drop_cmd"},
+    {"module": "help_cmd"},
+    {"module": "move_cmd"},
+    {"module": "quit_cmd"}
+  ]
+}

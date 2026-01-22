@@ -1,6 +1,6 @@
 {
   "name": "adventures-in-the-way",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Christian MMO/MUD text adventure with a web client.",
   "main": "index.js",
   "directories": {

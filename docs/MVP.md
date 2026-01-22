@@ -12,7 +12,7 @@ Adventures in The Way (AiTW) is a multiplayer, Christian-themed text adventure M
 - Backend: Python server with WebSockets; authoritative world state in RAM.
 - Client: basic 3-column web UI (left: room/exits/players/items, center: transcript + input, right: inventory).
 - Identity: IP-based player identity (no login yet).
-- World: four rooms total, including one gated by the Bible and one dark room.
+- World: four rooms total, including one gated by the Bible, one dark room, and an outside courtyard (public room).
 - Items: two items (Bible and Candle) that can be `TAKE`/`DROP`.
 - Live updates: arrivals, departures, item movement.
 - Gameplay URL: see `docs/PRD.md` and `README.md`.
@@ -31,6 +31,11 @@ Adventures in The Way (AiTW) is a multiplayer, Christian-themed text adventure M
 - One file per item prototype (e.g., `item:core:bible.json`).
 - IDs are human-readable, namespaced strings.
 - Prototype + instance model for live state.
+ - Item instances store mutable state (durability, on/off, charges, etc.) in runtime state, not per-file prototypes.
+
+## Design Notes (Future, beyond MVP)
+- Inventory rules should support weight and slot-based placement (hand, bag, ring, etc.).
+- World/region maps should support starting locations, spawn rules, and private tutorial instances.
 
 ## Command Architecture (MVP Direction)
 - Prefer one module per command (e.g., `LOOK`, `INVENTORY`, `TAKE`, `DROP`, `PRAY`).

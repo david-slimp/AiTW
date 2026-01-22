@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.0",
+  "start_room_id": "room:core:chapel_001",
+  "initial_instances": [
+    {
+      "instance_id": "inst:core:bible_001",
+      "prototype_id": "item:core:bible",
+      "location_type": "room",
+      "location_id": "room:core:chapel_001"
+    }
+  ]
+}

@@ -9,6 +9,7 @@
   const hereEl = document.getElementById('here');
   const groundEl = document.getElementById('ground');
   const invEl = document.getElementById('inv');
+  const quickEl = document.getElementById('quick');
 
   function addLine(text, cls) {
     const p = document.createElement('div');
@@ -64,6 +65,34 @@
       .then((text) => {
         const v = parseMetaVersion(text);
         appVersion.textContent = v ? `v${v}` : '';
+      })
+      .catch(() => {});
+  }
+
+  function renderQuickButtons(commands) {
+    if (!quickEl) return;
+    quickEl.innerHTML = '';
+    const examples = [];
+    (commands || []).forEach((cmd) => {
+      (cmd.examples || []).forEach((ex) => examples.push(ex));
+    });
+    const picks = examples.slice(0, 6);
+    picks.forEach((ex) => {
+      const btn = document.createElement('button');
+      btn.className = 'q';
+      btn.dataset.cmd = ex;
+      btn.textContent = ex;
+      btn.addEventListener('click', () => sendCmd(btn.dataset.cmd || ''));
+      quickEl.appendChild(btn);
+    });
+  }
+
+  function loadCommands() {
+    fetch('/commands.json', { cache: 'no-store' })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!data) return;
+        renderQuickButtons(data.commands || []);
       })
       .catch(() => {});
   }
@@ -125,4 +154,5 @@
   });
 
   loadVersion();
+  loadCommands();
 })();

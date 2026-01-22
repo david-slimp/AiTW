@@ -4,5 +4,7 @@
   "schema_version": 1,
   "content_version": "0.1.0",
   "rooms_path": "rooms",
-  "items_path": "items.json"
+  "items_path": "items",
+  "world_path": "world.json",
+  "commands_path": "commands/commands.json"
 }
